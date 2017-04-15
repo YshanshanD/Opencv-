@@ -34,6 +34,15 @@
 #include <afxcontrolbars.h>  
 // 功能区和控件条的 MFC 支持
 #include "CvvImage.h"
+#include <opencv2\opencv.hpp>
+#include <opencv2\highgui\highgui.hpp>
+#include <opencv2\core.hpp>
+#include <opencv2\imgcodecs.hpp>
+
+
+using namespace std;
+using namespace cv;
+
 
 
 

@@ -1,28 +1,15 @@
 
 // MFCtest3Dlg.cpp : 实现文件
-//
-// <opencv2/opencv2.hpp>
 #include "stdafx.h"
 #include "MFCtest3.h"
 #include "MFCtest3Dlg.h"
 #include "afxdialogex.h" 
-#include <string>
-#include<opencv2\opencv.hpp>
-#include<opencv2\highgui.hpp>
-#include<opencv2\imgproc.hpp>
-#include<opencv2\core\core.hpp>
-using namespace cv;
 
-using namespace std;
-//using namespace cv;
-CEvent start_event;
-int terminate_flag;
-//float hranges[] = { 0,255 };
-//float *ranges[] = { hranges };
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
+int CMFCtest3Dlg::playFlag = 2;
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -79,7 +66,6 @@ void CMFCtest3Dlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CMFCtest3Dlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
-	//ON_WM_TIMER()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_START, &CMFCtest3Dlg::OnBnClickedStart)
 	ON_BN_CLICKED(IDC_PAUSE, &CMFCtest3Dlg::OnBnClickedPause)
@@ -118,19 +104,19 @@ int CMFCtest3Dlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
+	//得到窗口信息
 	namedWindow("view", WINDOW_NORMAL);
 	HWND hWnd = (HWND)cvGetWindowHandle("view");
 	HWND hParent = ::GetParent(hWnd);
 	::SetParent(hWnd, GetDlgItem(IDC_SHARE)->m_hWnd);
 	::ShowWindow(hParent, SW_HIDE);
 
+    //将显示框与picture控件绑定
 	CRect rc;
 	CWnd *pWnd = GetDlgItem(IDC_SHARE);//IDC_PIC_2D为控件ID
 	pWnd->GetClientRect(&rc);//rc为控件的大小。
 	picture_x = rc.Height();
 	picture_y = rc.Width();
-
-
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -182,69 +168,25 @@ HCURSOR CMFCtest3Dlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
-/*
-int CMFCtest3Dlg::OSTUthred(MatND disHist) {
-	    float  disArray[256];
-	    for (int i = 0; i < 256; i++) 
-		disArray[i] = disHist.at < float >(i);
-		disArray[0]= 1;
-		float u0, u1;
-		float w0, w1;
-		int count0;
-		int t, maxT;
-		float devi, maxDevi = 0;
-		float  sum;
-		int j;
-		for ( j = 0; j < 256; j++)
-		{
-			sum = sum + disArray[j];
 
-		}
-		for (t = 0; t < 255; t++) {
-			u0 = 0;
-			count0 = 0;
-			for (j = 0; j<=t; j++) {
-				u0 += j* (disArray[j]);
-				count0 = j*(disArray[j]);
-
-			}
-			u0 = u0 / count0;
-			w0 = (float)count0 / sum;
-			u1 = 0;
-			for (j = t + 1; j < 256; j++) 
-				u1 += j*(disArray[j]);
-			u1 = u1 / (sum - count0);
-			w1 = 1 - w0;
-			devi = w0*w1*(u1 - u0)*(u1 - u0);
-			if (devi > maxDevi) {
-				maxDevi = devi;
-				maxT=t;
-			}
-			
-	   }
-		return maxT;
-	}
-
-*/
-
+  //播放处理视频
 UINT CMFCtest3Dlg::PlayVideo(LPVOID lpParam) {
 
-	VideoCapture capture("D:\\MFC\\MFCtest3\\MFCtest3\\beijingcar.mp4");
-	CMFCtest3Dlg* this_back = (CMFCtest3Dlg*)lpParam;
-	//VideoCapture capture(0);
-	Mat backgrpund;
+	VideoCapture capture("D:\\MFC\\MFCtest3\\MFCtest3\\zhongbei.mp4");
+	CMFCtest3Dlg* this_back = (CMFCtest3Dlg*)lpParam;//强制转换
+	Mat background;
 	Mat temp;
-	capture >> backgrpund;
-	absdiff(backgrpund, backgrpund,backgrpund);
-	cvtColor(backgrpund,backgrpund,CV_BGR2GRAY);
-	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
+	capture >> background;
+	absdiff(background, background,background);//
+	cvtColor(background,background,CV_BGR2GRAY);
+	capture.set(CV_CAP_PROP_POS_FRAMES, 0);//视频帧重新从开头来
+	//用前100帧来获取背景
 	for (int i = 0; i < 100; i++) {
 		if(!capture.read(temp)) break;
 		cvtColor(temp, temp, CV_BGR2GRAY);
-		addWeighted(backgrpund, 1, temp, 0.01, 0, backgrpund);
+		addWeighted(background, 1, temp, 0.01, 0, background);//根据权重计算当前帧
 	}
-	//imshow("background", backgrpund);
-	imwrite("back.jpg", backgrpund);
+	imwrite("back.jpg", background);
 	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 	int hold_value = 1;
 	while (1)
@@ -270,33 +212,17 @@ UINT CMFCtest3Dlg::PlayVideo(LPVOID lpParam) {
 			{
 				capture >> frame;
 				if (!capture.read(frame)) break;
-				
-				//重置大小，满足需求
-				
 				cvtColor(frame, frame, CV_RGB2GRAY);//灰度处理
-				subtract(frame, backgrpund, frame);//当前帧与背景进行差分
+				subtract(frame, background, frame);//当前帧与背景进行差分
+	            //重置大小，满足需求
 				Mat des = Mat::zeros(this_back->picture_x, this_back->picture_y, CV_8UC3);
 			    resize(frame, des, des.size());
-				
-				/*Mat disHist;
-				int dims = 1;
-				float hranges[] = { 0,255 };
-				float *ranges[] = { hranges };
-				int size = 256;
-				int channels = 0;
-				
-				calcHist(&des, 1, &channels, Mat(), disHist, dims, &size, ranges);
-				int scale = 1;
-				Mat dis(size*scale, size, CV_8U, Scalar());
-				int thresholdm = OSTUthred( disHist);
-				if (thresholdm < 20) {
-					thresholdm= 20;
-				}*/
-				
-				threshold(des, des, 0, 255,CV_THRESH_OTSU);
-			
-
+				threshold(des, des, 0, 255,CV_THRESH_OTSU);//阈值处理
+				int g_nStructElementSize = 1;
+		     	Mat element = getStructuringElement(MORPH_RECT,Size(2*g_nStructElementSize+1,2*g_nStructElementSize+1));
+			    erode(des,des,element);//腐蚀操作
 				imshow("view", des );
+
 				CString a;
 				a.Format(_T("%d"), hold_value);
 				this_back->show_value.SetWindowText(a);
@@ -314,7 +240,7 @@ UINT CMFCtest3Dlg::PlayVideo(LPVOID lpParam) {
 
 }
 
-
+//启动事件
 void CMFCtest3Dlg::OnBnClickedStart()
 {
 
@@ -328,8 +254,7 @@ void CMFCtest3Dlg::OnBnClickedStart()
 }
 	
 	
-	
-
+//暂停事件
 void CMFCtest3Dlg::OnBnClickedPause()
 {
 	// TODO:  在此添加控件通知处理程序代码
@@ -349,7 +274,7 @@ void CMFCtest3Dlg::OnBnClickedPause()
 	}
 }
 
-
+//停止事件
 void CMFCtest3Dlg::OnBnClickedStop()
 {
 	// TODO: 在此添加控件通知处理程序代码
@@ -357,5 +282,3 @@ void CMFCtest3Dlg::OnBnClickedStop()
 	::PostThreadMessage(playThread->m_nThreadID, WM_QUIT, 0, 0);
 
 }
-
-int CMFCtest3Dlg::playFlag = 2;
