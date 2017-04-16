@@ -172,7 +172,7 @@ HCURSOR CMFCtest3Dlg::OnQueryDragIcon()
   //播放处理视频
 UINT CMFCtest3Dlg::PlayVideo(LPVOID lpParam) {
 
-	VideoCapture capture("D:\\MFC\\MFCtest3\\MFCtest3\\zhongbei.mp4");
+	VideoCapture capture("D:\\MFC\\新建文件夹\\US-101-ProcessedVideo-0805am-0820am-Cam1234\\guangguang.avi");
 	CMFCtest3Dlg* this_back = (CMFCtest3Dlg*)lpParam;//强制转换
 	Mat background;
 	Mat temp;
@@ -186,7 +186,9 @@ UINT CMFCtest3Dlg::PlayVideo(LPVOID lpParam) {
 		cvtColor(temp, temp, CV_BGR2GRAY);
 		addWeighted(background, 1, temp, 0.01, 0, background);//根据权重计算当前帧
 	}
-	imwrite("back.jpg", background);
+	//imwrite("back.jpg", background);
+
+	//imshow("背景",background);
 	capture.set(CV_CAP_PROP_POS_FRAMES, 0);
 	int hold_value = 1;
 	while (1)
@@ -212,16 +214,20 @@ UINT CMFCtest3Dlg::PlayVideo(LPVOID lpParam) {
 			{
 				capture >> frame;
 				if (!capture.read(frame)) break;
+				//滤波处理
+
 				cvtColor(frame, frame, CV_RGB2GRAY);//灰度处理
+				medianBlur(frame, frame, 3);
 				subtract(frame, background, frame);//当前帧与背景进行差分
+
 	            //重置大小，满足需求
-				Mat des = Mat::zeros(this_back->picture_x, this_back->picture_y, CV_8UC3);
-			    resize(frame, des, des.size());
-				threshold(des, des, 0, 255,CV_THRESH_OTSU);//阈值处理
-				int g_nStructElementSize = 1;
-		     	Mat element = getStructuringElement(MORPH_RECT,Size(2*g_nStructElementSize+1,2*g_nStructElementSize+1));
-			    erode(des,des,element);//腐蚀操作
-				imshow("view", des );
+				//Mat des = Mat::zeros(this_back->picture_x, this_back->picture_y, CV_8UC3);
+			   // resize(frame, des, des.size());
+				//threshold(frame, frame, 0, 255,CV_THRESH_OTSU);//阈值处理
+				//int g_nStructElementSize = 1;
+		     	//Mat element = getStructuringElement(MORPH_RECT,Size(2*g_nStructElementSize+1,2*g_nStructElementSize+1));
+			    //erode(des,des,element);//腐蚀操作
+				imshow("view", frame );
 
 				CString a;
 				a.Format(_T("%d"), hold_value);
@@ -232,7 +238,7 @@ UINT CMFCtest3Dlg::PlayVideo(LPVOID lpParam) {
 			{
 				break;
 			}
-			waitKey(30);
+			waitKey(90);
 		}
 	}
 	capture.release();
